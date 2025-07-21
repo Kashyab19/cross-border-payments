@@ -2,8 +2,9 @@
 
 A production-ready REST API demonstrating cross-border payment processing with USD onramp and multi-currency payout capabilities.
 
-# Link to a mock UI: 
+## 🔗 Link to a mock UI: 
 `Note: This is not connected to the mock API in the repo since its not deployed but uses a simulated mock-mock API (double mock, yep!)`
+
 https://cross-border-payments.replit.app/
 : 
 
