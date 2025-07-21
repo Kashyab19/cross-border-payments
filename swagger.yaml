@@ -1,0 +1,410 @@
+openapi: 3.0.0
+info:
+  title: Cross-border Payment API
+  description: API for handling cross-border payments with USD onramp and multi-currency payout
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local Development Server
+
+components:
+  schemas:
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique payment identifier
+        idempotencyKey:
+          type: string
+          description: Client-provided key for idempotency
+        sourceAmount:
+          type: number
+          format: decimal
+          description: Amount in source currency
+        sourceCurrency:
+          type: string
+          example: "USD"
+          description: Source currency code (ISO 4217)
+        targetAmount:
+          type: number
+          format: decimal
+          description: Amount in target currency
+        targetCurrency:
+          type: string
+          example: "EUR"
+          description: Target currency code (ISO 4217)
+        exchangeRate:
+          type: number
+          format: decimal
+          description: Exchange rate used for conversion
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED]
+          description: Current payment status
+        customerId:
+          type: string
+          description: Customer identifier
+        customerEmail:
+          type: string
+          format: email
+          description: Customer email address
+        recipientName:
+          type: string
+          description: Name of payment recipient
+        recipientAccount:
+          type: string
+          description: Recipient account details
+        description:
+          type: string
+          description: Payment description
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PaymentQuote:
+      type: object
+      properties:
+        sourceAmount:
+          type: number
+        sourceCurrency:
+          type: string
+        targetAmount:
+          type: number
+        targetCurrency:
+          type: string
+        exchangeRate:
+          type: number
+        totalFees:
+          type: number
+        netAmount:
+          type: number
+
+    Fee:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          example: "processing"
+        amount:
+          type: number
+        currency:
+          type: string
+        rate:
+          type: number
+          nullable: true
+        provider:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+paths:
+  /payments:
+    post:
+      summary: Create a new payment
+      description: Create a new cross-border payment with the specified details
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - sourceAmount
+                - sourceCurrency
+                - targetCurrency
+                - customerId
+              properties:
+                idempotencyKey:
+                  type: string
+                sourceAmount:
+                  type: number
+                sourceCurrency:
+                  type: string
+                targetCurrency:
+                  type: string
+                customerId:
+                  type: string
+                customerEmail:
+                  type: string
+                  format: email
+                recipientName:
+                  type: string
+                recipientAccount:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      payment:
+                        $ref: '#/components/schemas/Payment'
+                      quote:
+                        $ref: '#/components/schemas/PaymentQuote'
+                      fees:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Fee'
+                      summary:
+                        type: object
+                        properties:
+                          paymentId:
+                            type: string
+                          status:
+                            type: string
+                          sourceAmount:
+                            type: number
+                          targetAmount:
+                            type: number
+                          totalFees:
+                            type: number
+                          netAmount:
+                            type: number
+                          exchangeRate:
+                            type: number
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    get:
+      summary: List all payments
+      description: Retrieve a list of all payments with optional filtering
+      operationId: listPayments
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        - name: customerId
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+
+  /payments/{id}:
+    get:
+      summary: Get payment details
+      description: Retrieve detailed information about a specific payment
+      operationId: getPayment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Payment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /payments/{id}/process:
+    post:
+      summary: Process a payment
+      description: Start processing a pending payment
+      operationId: processPayment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment processing started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [PROCESSING]
+                      steps:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            step:
+                              type: string
+                            status:
+                              type: string
+                            duration:
+                              type: number
+                            details:
+                              type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /quote:
+    post:
+      summary: Get payment quote
+      description: Get exchange rate and fee quote for a potential payment
+      operationId: getQuote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sourceAmount
+                - sourceCurrency
+                - targetCurrency
+              properties:
+                sourceAmount:
+                  type: number
+                sourceCurrency:
+                  type: string
+                targetCurrency:
+                  type: string
+      responses:
+        '200':
+          description: Payment quote
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PaymentQuote'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the API and its dependencies
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, unhealthy]
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          responseTime:
+                            type: number
+                      redis:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          responseTime:
+                            type: number 

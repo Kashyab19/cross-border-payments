@@ -1,0 +1,181 @@
+// Database Schema for Cross-Border Payment API
+// This defines our complete data model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums for type safety
+enum PaymentStatus {
+  PENDING      // Payment created, awaiting processing
+  PROCESSING   // Being processed by providers
+  COMPLETED    // Successfully completed
+  FAILED       // Processing failed
+  CANCELLED    // Cancelled by user/system
+}
+
+enum PaymentDirection {
+  INBOUND      // Money coming in (USD onramp)
+  OUTBOUND     // Money going out (local currency offramp)
+}
+
+enum TransactionType {
+  PAYMENT      // Main payment transaction
+  FEE          // Fee deduction
+  REFUND       // Payment refund
+  CHARGEBACK   // Disputed payment
+}
+
+// Core payment entity
+model Payment {
+  // Primary identifiers
+  id                String   @id @default(uuid())
+  idempotencyKey    String   @unique
+  
+  // Payment amounts and currencies
+  sourceAmount      Decimal  @db.Decimal(18, 8)
+  sourceCurrency    String   @db.VarChar(3)
+  targetAmount      Decimal? @db.Decimal(18, 8)
+  targetCurrency    String   @db.VarChar(3)
+  exchangeRate      Decimal? @db.Decimal(18, 8)
+  
+  // Status and flow
+  status            PaymentStatus @default(PENDING)
+  direction         PaymentDirection @default(OUTBOUND)
+  externalReference String?
+  
+  // Customer information
+  customerId        String?
+  customerEmail     String?
+  recipientName     String?
+  recipientAccount  String?
+  description       String?
+  
+  // Relationships
+  fees              Fee[]
+  transactions      Transaction[]
+  events            PaymentEvent[]
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  completedAt       DateTime?
+  
+  @@map("payments")
+  @@index([status])
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([idempotencyKey])
+}
+
+// Fee structure
+model Fee {
+  id            String   @id @default(uuid())
+  paymentId     String
+  payment       Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  
+  // Fee details
+  type          String   // "processing", "fx", "network", "destination"
+  amount        Decimal  @db.Decimal(18, 8)
+  currency      String   @db.VarChar(3)
+  rate          Decimal? @db.Decimal(8, 6)
+  
+  // Provider information
+  provider      String?
+  description   String?
+  
+  createdAt     DateTime @default(now())
+  
+  @@map("fees")
+  @@index([paymentId])
+}
+
+// Transaction ledger
+model Transaction {
+  id              String          @id @default(uuid())
+  paymentId       String
+  payment         Payment         @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  
+  // Transaction details
+  type            TransactionType
+  amount          Decimal         @db.Decimal(18, 8)
+  currency        String          @db.VarChar(3)
+  balance         Decimal?        @db.Decimal(18, 8)
+  
+  // External provider information
+  providerId      String?
+  externalTxId    String?
+  
+  // Metadata
+  description     String?
+  metadata        Json?
+  
+  createdAt       DateTime        @default(now())
+  
+  @@map("transactions")
+  @@index([paymentId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Event sourcing for audit trail
+model PaymentEvent {
+  id          String        @id @default(uuid())
+  paymentId   String
+  payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  
+  // Event details
+  eventType   String        // "payment_created", "status_changed", etc.
+  oldStatus   PaymentStatus?
+  newStatus   PaymentStatus?
+  
+  // Event data
+  data        Json?
+  source      String?       // "api", "webhook", "cron"
+  
+  createdAt   DateTime      @default(now())
+  
+  @@map("payment_events")
+  @@index([paymentId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+// Exchange rate history
+model ExchangeRate {
+  id              String   @id @default(uuid())
+  sourceCurrency  String   @db.VarChar(3)
+  targetCurrency  String   @db.VarChar(3)
+  rate            Decimal  @db.Decimal(18, 8)
+  provider        String   // "coinbase", "mock", etc.
+  
+  // Time validity
+  validFrom       DateTime @default(now())
+  validUntil      DateTime?
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([sourceCurrency, targetCurrency, provider, validFrom])
+  @@map("exchange_rates")
+  @@index([sourceCurrency, targetCurrency])
+  @@index([validFrom])
+}
+
+// Idempotency tracking
+model IdempotencyKey {
+  id            String   @id @default(uuid())
+  key           String   @unique
+  paymentId     String?
+  response      Json?
+  
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  
+  @@map("idempotency_keys")
+  @@index([expiresAt])
+}
