@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 export const createPaymentSchema = z.object({
   idempotencyKey: z.string().min(1, 'Idempotency key is required').max(255, 'Idempotency key too long'),
   sourceAmount: z.number().positive('Source amount must be positive').max(1000000, 'Amount too large'),
-  sourceCurrency: z.string().length(3, 'Currency must be 3 characters').regex(/^[A-Z]{3}$/, 'Invalid currency format'),
+  sourceCurrency: z.literal('USD'),
   targetCurrency: z.string().length(3, 'Currency must be 3 characters').regex(/^[A-Z]{3}$/, 'Invalid currency format'),
   customerId: z.string().optional(),
   customerEmail: z.string().email('Invalid email format').optional(),
@@ -15,14 +15,20 @@ export const createPaymentSchema = z.object({
   description: z.string().max(500, 'Description too long').optional(),
   destinationCountry: z.string().length(2, 'Country code must be 2 characters').regex(/^[A-Z]{2}$/, 'Invalid country code').optional(),
   paymentMethod: z.string().optional()
+}).refine((data) => data.sourceCurrency !== data.targetCurrency, {
+  message: 'Source and target currencies must be different',
+  path: ['targetCurrency']
 });
 
 export const getPaymentQuoteSchema = z.object({
   sourceAmount: z.number().positive('Source amount must be positive').max(1000000, 'Amount too large'),
-  sourceCurrency: z.string().length(3, 'Currency must be 3 characters').regex(/^[A-Z]{3}$/, 'Invalid currency format'),
+  sourceCurrency: z.literal('USD'),
   targetCurrency: z.string().length(3, 'Currency must be 3 characters').regex(/^[A-Z]{3}$/, 'Invalid currency format'),
   destinationCountry: z.string().length(2, 'Country code must be 2 characters').regex(/^[A-Z]{2}$/, 'Invalid country code').optional(),
   paymentMethod: z.string().optional()
+}).refine((data) => data.sourceCurrency !== data.targetCurrency, {
+  message: 'Source and target currencies must be different',
+  path: ['targetCurrency']
 });
 
 // Generic validation middleware factory

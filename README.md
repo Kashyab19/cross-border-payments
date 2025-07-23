@@ -27,9 +27,9 @@ This API showcases **senior-level engineering patterns** commonly used in fintec
 ### Core Components
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client App    │    │   Admin Panel   │    │  External APIs  │
-└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────── ┐
+│   Client App    │    │   Admin Panel   │    │  Mocked External APIs  │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬──────────────┘
           │                      │                      │
           ▼                      ▼                      ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -80,7 +80,8 @@ cd cross-border-payment-api
 npm install
 
 # 2. Start infrastructure (PostgreSQL + Redis)
-docker-compose up postgres redis -d
+Ensure that your docker is installed and the daemon is running
+docker-compose -f docker/docker-compose.yml up postgres redis -d
 
 # 3. Set up database
 cp .env.example .env
@@ -139,4 +140,8 @@ curl -X POST http://localhost:3000/api/v1/payments \
   }'
 
 # 2. Process the payment (use the ID from step 1)
-curl -X POST http://localhost:3000/api/v1/admin/payments/{PAYMENT_ID
+curl -X POST http://localhost:3000/api/v1/admin/payments/{PAYMENT_ID}
+
+## Misc.
+
+To open the prisma studio: `npx prisma studio` (helps you visualize the database in a clean UI)
