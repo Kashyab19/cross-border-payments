@@ -420,7 +420,7 @@ export class PaymentProcessor {
         throw new Error(`Payment not found: ${paymentId}`);
       }
 
-      await prisma.$transaction(async (tx: typeof prisma) => {
+      await prisma.$transaction(async (tx) => {
         // Get current payment with full details
         const currentPayment = await tx.payment.findUnique({
           where: { id: paymentId }

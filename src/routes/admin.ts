@@ -116,10 +116,10 @@ router.get('/payments', async (req: express.Request, res: express.Response) => {
         count: payments.length,
         summary: {
           byStatus: await getPaymentStatusSummary(),
-          recentActivity: payments.slice(0, 10).map((payment: PaymentWithRelations) => ({
+          recentActivity: payments.slice(0, 10).map((payment) => ({
             id: payment.id,
             status: payment.status,
-            amount: payment.sourceAmount,
+            amount: Number(payment.sourceAmount),
             currency: payment.sourceCurrency,
             createdAt: payment.createdAt,
             lastEvent: payment.events[0]?.eventType
@@ -192,7 +192,7 @@ router.get('/payments/:id/details', async (req: express.Request, res: express.Re
     }));
 
     // Calculate totals
-    const totalFees = payment.fees.reduce((sum: number, fee: Fee) => sum + Number(fee.amount), 0);
+    const totalFees = payment.fees.reduce((sum: number, fee: any) => sum + Number(fee.amount), 0);
     const netAmount = Number(payment.targetAmount || 0) - totalFees;
 
     const response: ApiResponse = {
