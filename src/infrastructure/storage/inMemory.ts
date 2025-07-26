@@ -1,30 +1,30 @@
-import { Payment, Fee } from '../types';
+import { IPayment, IFee } from '../../domain/interfaces/IPayment';
 
 // Simple in-memory storage before we add database
 export class InMemoryStorage {
-  private payments: Map<string, Payment> = new Map();
-  private fees: Map<string, Fee[]> = new Map(); // paymentId -> fees[]
+  private payments: Map<string, IPayment> = new Map();
+  private fees: Map<string, IFee[]> = new Map(); // paymentId -> fees[]
   private idempotencyKeys: Map<string, string> = new Map(); // key -> paymentId
 
   // Payment operations
-  async savePayment(payment: Payment): Promise<void> {
+  async savePayment(payment: IPayment): Promise<void> {
     this.payments.set(payment.id, { ...payment });
     
     // Track idempotency key
     this.idempotencyKeys.set(payment.idempotencyKey, payment.id);
   }
 
-  async getPayment(id: string): Promise<Payment | null> {
+  async getPayment(id: string): Promise<IPayment | null> {
     const payment = this.payments.get(id);
     return payment ? { ...payment } : null;
   }
 
-  async getPaymentByIdempotencyKey(key: string): Promise<Payment | null> {
+  async getPaymentByIdempotencyKey(key: string): Promise<IPayment | null> {
     const paymentId = this.idempotencyKeys.get(key);
     return paymentId ? this.getPayment(paymentId) : null;
   }
 
-  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | null> {
+  async updatePayment(id: string, updates: Partial<IPayment>): Promise<IPayment | null> {
     const existing = this.payments.get(id);
     if (!existing) return null;
 
@@ -38,16 +38,16 @@ export class InMemoryStorage {
     return { ...updated };
   }
 
-  async getAllPayments(): Promise<Payment[]> {
+  async getAllPayments(): Promise<IPayment[]> {
     return Array.from(this.payments.values());
   }
 
   // Fee operations
-  async saveFeesForPayment(paymentId: string, fees: Fee[]): Promise<void> {
+  async saveFeesForPayment(paymentId: string, fees: IFee[]): Promise<void> {
     this.fees.set(paymentId, [...fees]);
   }
 
-  async getFeesForPayment(paymentId: string): Promise<Fee[]> {
+  async getFeesForPayment(paymentId: string): Promise<IFee[]> {
     return [...(this.fees.get(paymentId) || [])];
   }
 

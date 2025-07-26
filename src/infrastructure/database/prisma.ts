@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { logger } from '../../utils/logger';
+import { logger } from '../logger';
 
 declare global {
   var __prisma: PrismaClient | undefined;
@@ -23,30 +23,11 @@ const prisma =
   globalThis.__prisma ??
   new PrismaClient({
     log: [
-      { level: 'query', emit: 'event' },
-      { level: 'info', emit: 'event' },
-      { level: 'warn', emit: 'event' },
-      { level: 'error', emit: 'event' },
+      { level: 'info', emit: 'stdout' },
+      { level: 'warn', emit: 'stdout' },
+      { level: 'error', emit: 'stdout' },
     ],
   });
-
-// Add Prisma event listeners for better logging
-prisma.$on('query', (e: QueryEvent) => {
-  logger.debug('Prisma Query', {
-    query: e.query,
-    params: e.params,
-    duration: e.duration,
-    timestamp: e.timestamp
-  });
-});
-
-prisma.$on('error', (e: LogEvent) => {
-  logger.error('Prisma Error', {
-    message: e.message,
-    target: e.target,
-    timestamp: e.timestamp
-  });
-});
 
 if (process.env.NODE_ENV === 'development') {
   globalThis.__prisma = prisma;

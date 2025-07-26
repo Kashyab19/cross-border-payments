@@ -1,8 +1,8 @@
-import { PaymentStatus } from '../types';
-import { prisma } from '../infrastructure/database/prisma';
-import { logger } from '../utils/logger';
-import { MockStripeProvider } from './providers/MockStripProvider';
-import { MockOfframpProvider } from './providers/MockOffRampProvider';
+import { PaymentStatus } from '../../domain/entities';
+import { prisma } from '../../infrastructure/database/prisma';
+import { logger } from '../../infrastructure/logger';
+import { MockStripeProvider } from '../../infrastructure/providers/MockStripProvider';
+import { MockOfframpProvider } from '../../infrastructure/providers/MockOffRampProvider';
 
 export interface ProcessPaymentResult {
   success: boolean;

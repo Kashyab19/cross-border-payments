@@ -1,7 +1,37 @@
 openapi: 3.0.0
 info:
   title: Cross-border Payment API
-  description: API for handling cross-border payments with USD onramp and multi-currency payout
+  description: |
+    ## Overview
+    
+    A production-ready REST API for handling cross-border payments with USD onramp and multi-currency payout capabilities. 
+    Built with domain-driven design principles and comprehensive error handling.
+    
+    ## Architecture
+    
+    - **Domain Layer**: Core business entities and interfaces
+    - **Application Layer**: Business services and use cases  
+    - **Infrastructure Layer**: Database, caching, and external providers
+    - **Presentation Layer**: REST API routes and middleware
+    
+    ## Error Handling
+    
+    All errors follow a consistent format with:
+    - `name`: Error class name
+    - `code`: Machine-readable error code
+    - `message`: Human-readable description
+    - `statusCode`: HTTP status code
+    - `timestamp`: When the error occurred
+    
+    ## Features
+    
+    - ✅ Type-safe domain interfaces
+    - ✅ Custom error types with proper status codes
+    - ✅ Decimal precision for financial calculations
+    - ✅ Idempotency support
+    - ✅ Comprehensive validation
+    - ✅ Event sourcing and audit trails
+    
   version: 1.0.0
   contact:
     name: API Support
@@ -117,16 +147,111 @@ components:
     Error:
       type: object
       properties:
-        success:
-          type: boolean
-          example: false
-        error:
+        name:
           type: string
+          description: Error class name
+          example: "PaymentNotFoundError"
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "PAYMENT_NOT_FOUND"
         message:
           type: string
+          description: Human-readable error message
+          example: "Payment with ID abc-123 not found"
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 404
         timestamp:
           type: string
           format: date-time
+          description: When the error occurred
+          example: "2024-01-15T10:30:00Z"
+
+    PaymentNotFoundError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            name:
+              example: "PaymentNotFoundError"
+            code:
+              example: "PAYMENT_NOT_FOUND"
+            statusCode:
+              example: 404
+
+    DuplicatePaymentError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            name:
+              example: "DuplicatePaymentError"
+            code:
+              example: "DUPLICATE_PAYMENT"
+            statusCode:
+              example: 409
+
+    InvalidCurrencyError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            name:
+              example: "InvalidCurrencyError"
+            code:
+              example: "INVALID_CURRENCY"
+            statusCode:
+              example: 400
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            name:
+              example: "ValidationError"
+            code:
+              example: "VALIDATION_ERROR"
+            statusCode:
+              example: 400
+
+    PaymentProcessingError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            name:
+              example: "PaymentProcessingError"
+            code:
+              example: "PAYMENT_PROCESSING_ERROR"
+            statusCode:
+              example: 500
+
+    InsufficientFundsError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            name:
+              example: "InsufficientFundsError"
+            code:
+              example: "INSUFFICIENT_FUNDS"
+            statusCode:
+              example: 400
+
+    ExchangeRateError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            name:
+              example: "ExchangeRateError"
+            code:
+              example: "EXCHANGE_RATE_ERROR"
+            statusCode:
+              example: 500
 
   responses:
     NotFound:
@@ -134,13 +259,86 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            oneOf:
+              - $ref: '#/components/schemas/PaymentNotFoundError'
+          examples:
+            payment_not_found:
+              summary: Payment not found
+              value:
+                name: "PaymentNotFoundError"
+                code: "PAYMENT_NOT_FOUND"
+                message: "Payment with ID abc-123 not found"
+                statusCode: 404
+                timestamp: "2024-01-15T10:30:00Z"
+    
     BadRequest:
       description: Invalid request
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            oneOf:
+              - $ref: '#/components/schemas/ValidationError'
+              - $ref: '#/components/schemas/InvalidCurrencyError'
+              - $ref: '#/components/schemas/InsufficientFundsError'
+          examples:
+            validation_error:
+              summary: Validation failed
+              value:
+                name: "ValidationError"
+                code: "VALIDATION_ERROR"
+                message: "Validation failed for sourceAmount: must be positive"
+                statusCode: 400
+                timestamp: "2024-01-15T10:30:00Z"
+            invalid_currency:
+              summary: Invalid currency
+              value:
+                name: "InvalidCurrencyError"
+                code: "INVALID_CURRENCY"
+                message: "Invalid currency: XYZ"
+                statusCode: 400
+                timestamp: "2024-01-15T10:30:00Z"
+    
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DuplicatePaymentError'
+          examples:
+            duplicate_payment:
+              summary: Duplicate payment
+              value:
+                name: "DuplicatePaymentError"
+                code: "DUPLICATE_PAYMENT"
+                message: "Payment with idempotency key test-001 already exists"
+                statusCode: 409
+                timestamp: "2024-01-15T10:30:00Z"
+    
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/PaymentProcessingError'
+              - $ref: '#/components/schemas/ExchangeRateError'
+          examples:
+            processing_error:
+              summary: Payment processing failed
+              value:
+                name: "PaymentProcessingError"
+                code: "PAYMENT_PROCESSING_ERROR"
+                message: "Payment processing failed: provider unavailable"
+                statusCode: 500
+                timestamp: "2024-01-15T10:30:00Z"
+            exchange_rate_error:
+              summary: Exchange rate error
+              value:
+                name: "ExchangeRateError"
+                code: "EXCHANGE_RATE_ERROR"
+                message: "Failed to get exchange rate from USD to EUR"
+                statusCode: 500
+                timestamp: "2024-01-15T10:30:00Z"
 
 paths:
   /payments:
@@ -221,6 +419,10 @@ paths:
                             type: number
         '400':
           $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     get:
       summary: List all payments
@@ -261,6 +463,8 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Payment'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /payments/{id}:
     get:
@@ -289,6 +493,8 @@ paths:
                     $ref: '#/components/schemas/Payment'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /payments/{id}/process:
     post:
@@ -336,6 +542,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /quote:
     post:
@@ -374,6 +582,8 @@ paths:
                     $ref: '#/components/schemas/PaymentQuote'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /health:
     get:

@@ -1,5 +1,4 @@
-import { Fee } from '../types';
-import { v4 as uuidv4 } from 'uuid';
+import { IFee } from '../../domain/interfaces/IPayment';
 
 export interface FeeCalculationRequest {
   sourceAmount: number;
@@ -9,7 +8,7 @@ export interface FeeCalculationRequest {
 }
 
 export interface FeeCalculationResult {
-  fees: Fee[];
+  fees: Omit<IFee, 'id' | 'paymentId' | 'createdAt'>[];
   totalFeeAmount: number;
   breakdown: string[];
 }
@@ -43,7 +42,7 @@ export class FeeCalculator {
   };
 
   async calculateFees(request: FeeCalculationRequest): Promise<FeeCalculationResult> {
-    const fees: Fee[] = [];
+    const fees: Omit<IFee, 'id' | 'paymentId' | 'createdAt'>[] = [];
     const breakdown: string[] = [];
     let totalFeeAmount = 0;
 
@@ -82,13 +81,12 @@ export class FeeCalculator {
     };
   }
 
-  private calculateProcessingFee(sourceAmount: number): Fee {
+  private calculateProcessingFee(sourceAmount: number): Omit<IFee, 'id' | 'paymentId' | 'createdAt'> {
     const fixedFee = this.config.baseFee.fixed;
     const percentageFee = sourceAmount * this.config.baseFee.percentage;
     const totalAmount = fixedFee + percentageFee;
 
     return {
-      id: uuidv4(),
       type: 'processing',
       amount: Number(totalAmount.toFixed(2)),
       currency: 'USD',
@@ -96,13 +94,12 @@ export class FeeCalculator {
     };
   }
 
-  private calculateFxFee(request: FeeCalculationRequest): Fee {
+  private calculateFxFee(request: FeeCalculationRequest): Omit<IFee, 'id' | 'paymentId' | 'createdAt'> {
     const pairKey = `${request.sourceCurrency}_${request.targetCurrency}`;
     const fxRate = this.config.fxFees[pairKey] || 0.01; // Default 1%
     const feeAmount = request.sourceAmount * fxRate;
 
     return {
-      id: uuidv4(),
       type: 'fx',
       amount: Number(feeAmount.toFixed(2)),
       currency: 'USD',
@@ -110,12 +107,11 @@ export class FeeCalculator {
     };
   }
 
-  private calculateDestinationFee(request: FeeCalculationRequest): Fee {
+  private calculateDestinationFee(request: FeeCalculationRequest): Omit<IFee, 'id' | 'paymentId' | 'createdAt'> {
     const destRate = this.config.destinationFees[request.destinationCountry!] || 0;
     const feeAmount = request.sourceAmount * destRate;
 
     return {
-      id: uuidv4(),
       type: 'destination',
       amount: Number(feeAmount.toFixed(2)),
       currency: 'USD',

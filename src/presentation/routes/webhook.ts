@@ -1,8 +1,8 @@
 import express from 'express';
-import { prisma } from '../infrastructure/database/prisma';
-import { WebhookService } from '../services/WebhookService';
-import { PaymentService } from '../services/PaymentService';
-import { PaymentStatus } from '../types';
+import { prisma } from '../../infrastructure/database/prisma';
+import { WebhookService } from '../../application/services/WebhookService';
+import { PaymentService } from '../../application/services/PaymentService';
+import { PaymentStatus } from '../../domain/entities';
 import { 
   captureRawBody, 
   verifyStripeWebhook, 
@@ -10,10 +10,11 @@ import {
   webhookRateLimit,
   logWebhookRequest
 } from '../middleware/webHookAuth';
-import { logger } from '../utils/logger';
-import { WebhookEventType, ProviderWebhookEvent } from '../types/webhook';
+import { logger } from '../../infrastructure/logger';
+import { WebhookEventType, ProviderWebhookEvent } from '../../domain/entities/webhook';
 
-type PrismaTransaction = typeof prisma;
+import { PrismaClient } from '@prisma/client';
+type PrismaTransaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
 const router = express.Router();
 const webhookService = new WebhookService();

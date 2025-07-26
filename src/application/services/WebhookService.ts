@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { prisma } from '../infrastructure/database/prisma';
-import { logger } from '../utils/logger';
-import { webhookSecurity } from '../utils/crypto';
-import { WebhookEventType, PaymentWebhookEvent } from '../types/webhook';
+import { prisma } from '../../infrastructure/database/prisma';
+import { logger } from '../../infrastructure/logger';
+import { webhookSecurity } from '../../infrastructure/crypto';
+import { WebhookEventType, PaymentWebhookEvent } from '../../domain/entities/webhook';
 
 export interface WebhookEndpoint {
   id: string;

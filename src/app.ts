@@ -7,11 +7,11 @@ import path from 'path';
 
 import { db } from './infrastructure/database/prisma';
 import { redis } from './infrastructure/cache/redis';
-import { logger } from './utils/logger';
+import { logger } from './infrastructure/logger';
 
-import paymentRoutes from './routes/payments';
-import adminRoutes from './routes/admin';
-import webhookRoutes from './routes/webhook';
+import paymentRoutes from './presentation/routes/payments';
+import adminRoutes from './presentation/routes/admin';
+import webhookRoutes from './presentation/routes/webhook';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,9 +30,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Routes
-app.use(`/api/${apiVersion}/payments`, paymentRoutes);
-app.use(`/api/${apiVersion}/admin`, adminRoutes);
-app.use(`/api/${apiVersion}/webhooks`, webhookRoutes);
+app.use(`/api/${apiVersion}`, paymentRoutes);  // This handles /payments and /quote
+app.use(`/admin`, adminRoutes);                // Admin routes at /admin
+app.use(`/webhooks`, webhookRoutes);           // Webhook routes at /webhooks
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

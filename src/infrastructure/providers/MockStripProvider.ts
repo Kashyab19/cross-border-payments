@@ -1,5 +1,5 @@
-import { logger } from '../../utils/logger';
-import { ProviderWebhookEvent, WebhookEventType } from '../../types/webhook';
+import { logger } from '../logger';
+import { ProviderWebhookEvent, WebhookEventType } from '../../domain/entities/webhook';
 
 export interface StripeChargeRequest {
   paymentId: string;

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { logger } from '../utils/logger';
+import { logger } from '../../infrastructure/logger';
 
 // Validation schemas
 export const createPaymentSchema = z.object({

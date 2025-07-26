@@ -1,9 +1,11 @@
-import { Payment, CreatePaymentRequest, PaymentQuote, PaymentStatus } from '../types';
-import { storage } from '../storage/DatabaseStorage';
+import { IPayment } from '../../domain/interfaces/IPayment';
+import { PaymentStatus } from '../../domain/entities';
+import { CreatePaymentRequest, PaymentQuote } from '../../presentation/types';
+import { storage } from '../../infrastructure/storage/DatabaseStorage';
 import { FeeCalculator } from './FeeCalculator';
 import { ExchangeService } from './ExchangeService';
 import { WebhookService } from './WebhookService';
-import { logger } from '../utils/logger';
+import { logger } from '../../infrastructure/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 export class PaymentService {
@@ -66,7 +68,7 @@ export class PaymentService {
   }
 
   async createPayment(request: CreatePaymentRequest): Promise<{
-    payment: Payment;
+    payment: IPayment;
     quote: PaymentQuote;
     fees: any[];
   }> {
@@ -108,7 +110,7 @@ export class PaymentService {
       });
 
       // 4. Create payment entity
-      const payment: Payment = {
+      const payment: IPayment = {
         id: uuidv4(),
         idempotencyKey: request.idempotencyKey,
         sourceAmount: request.sourceAmount,
@@ -126,9 +128,8 @@ export class PaymentService {
         updatedAt: new Date()
       };
 
-      // 5. Save payment and fees
-      await storage.savePayment(payment);
-      await storage.saveFeesForPayment(payment.id, feeResult.fees);
+      // 5. Save payment and fees in a transaction
+      await storage.createPaymentWithFees(payment, feeResult.fees);
 
       logger.info('Payment created successfully', {
         paymentId: payment.id,
@@ -151,7 +152,7 @@ export class PaymentService {
   }
 
   async getPayment(paymentId: string): Promise<{
-    payment: Payment;
+    payment: IPayment;
     fees: any[];
   } | null> {
     try {
@@ -169,7 +170,7 @@ export class PaymentService {
     }
   }
 
-  async getAllPayments(): Promise<Payment[]> {
+  async getAllPayments(): Promise<IPayment[]> {
     try {
       return await storage.getAllPayments();
     } catch (error) {
@@ -178,7 +179,7 @@ export class PaymentService {
     }
   }
 
-  async updatePaymentStatus(paymentId: string, status: PaymentStatus): Promise<Payment | null> {
+  async updatePaymentStatus(paymentId: string, status: PaymentStatus): Promise<IPayment | null> {
     try {
       const updated = await storage.updatePayment(paymentId, {
         status,

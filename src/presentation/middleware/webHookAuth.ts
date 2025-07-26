@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { webhookSecurity } from '../utils/crypto';
-import { logger } from '../utils/logger';
+import { webhookSecurity } from '../../infrastructure/crypto';
+import { logger } from '../../infrastructure/logger';
 
 // Extend Express Request to include webhook validation
 interface WebhookRequest extends Request {

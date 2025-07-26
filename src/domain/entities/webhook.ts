@@ -1,4 +1,4 @@
-import { PaymentStatus } from '../types';
+import { PaymentStatus } from './index';
 
 // Webhook event types that our system sends/receives
 export enum WebhookEventType {

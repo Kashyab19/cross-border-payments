@@ -1,7 +1,7 @@
 import express from 'express';
-import { PaymentProcessor } from '../services/PaymentProcessor';
-import { prisma } from '../infrastructure/database/prisma';
-import { logger } from '../utils/logger';
+import { PaymentProcessor } from '../../application/services/PaymentProcessor';
+import { prisma } from '../../infrastructure/database/prisma';
+import { logger } from '../../infrastructure/logger';
 import { ApiResponse } from '../types';
 
 interface PaymentWithRelations {

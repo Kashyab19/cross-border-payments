@@ -1,17 +1,17 @@
 import express from 'express';
-import { PaymentService } from '../services/PaymentService';
+import { PaymentService } from '../../application/services/PaymentService';
 import { 
   validateCreatePayment, 
   validateGetQuote, 
   validateSupportedCurrencies 
 } from '../middleware/validation';
-import { logger } from '../utils/logger';
+import { logger } from '../../infrastructure/logger';
 import { CreatePaymentRequest, ApiResponse } from '../types';
 
 const router = express.Router();
 const paymentService = new PaymentService();
 
-// POST /api/v1/payments/quote - Get payment quote
+// POST /api/v1/quote - Get payment quote
 router.post('/quote', 
   validateGetQuote,
   validateSupportedCurrencies,
@@ -48,7 +48,7 @@ router.post('/quote',
 );
 
 // POST /api/v1/payments - Create payment
-router.post('/',
+router.post('/payments',
   validateCreatePayment,
   validateSupportedCurrencies,
   async (req: express.Request, res: express.Response) => {
@@ -95,7 +95,7 @@ router.post('/',
 );
 
 // GET /api/v1/payments/:id - Get payment by ID
-router.get('/:id', async (req: express.Request, res: express.Response) => {
+router.get('/payments/:id', async (req: express.Request, res: express.Response) => {
   try {
     const paymentId = req.params.id;
     
@@ -148,7 +148,7 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
 });
 
 // GET /api/v1/payments - Get all payments (for debugging)
-router.get('/', async (req: express.Request, res: express.Response) => {
+router.get('/payments', async (req: express.Request, res: express.Response) => {
   try {
     const payments = await paymentService.getAllPayments();
     
@@ -178,7 +178,7 @@ router.get('/', async (req: express.Request, res: express.Response) => {
 });
 
 // GET /api/v1/payments/stats - Get service stats
-router.get('/stats', async (req: express.Request, res: express.Response) => {
+router.get('/payments/stats', async (req: express.Request, res: express.Response) => {
   try {
     const stats = await paymentService.getStats();
     

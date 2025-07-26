@@ -1,4 +1,4 @@
-import { prisma } from '../infrastructure/database/prisma';
+import { prisma } from './database/prisma';
 import { logger } from './logger';
 
 export async function runMigrations(): Promise<void> {

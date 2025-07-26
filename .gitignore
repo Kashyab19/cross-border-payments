@@ -154,3 +154,5 @@ Thumbs.db
 
 # Local development specific
 docker-compose.override.yml
+
+.claude
